@@ -33,9 +33,10 @@ class SearchEmbedding
             $query->whereHas('embeddable', $apply);
         }
 
-        // Apply __soft_deleted property from the builder
-        if (isset($builder->wheres['__soft_deleted'])) {
-            $query->where('__soft_deleted', $builder->wheres['__soft_deleted']);
+        foreach ($builder->wheres as $where) {
+            if ($where['field'] === '__soft_deleted') {
+                $query->where('__soft_deleted', $where['operator'], $where['value']);
+            }
         }
 
         $query->whereHasMorph('embeddable', [$model->getMorphClass()], function ($query) use ($builder, $model) {
@@ -45,14 +46,12 @@ class SearchEmbedding
                 $query->withTrashed();
             }
 
-            if ($builder->wheres) {
-                foreach ($builder->wheres as $key => $value) {
-                    // Skip __soft_deleted as it's handled on the embeddings table
-                    if ($key === '__soft_deleted') {
-                        continue;
-                    }
-                    $query->where($key, $value);
+            foreach ($builder->wheres as $where) {
+                // Skip __soft_deleted as it's handled on the embeddings table
+                if ($where['field'] === '__soft_deleted') {
+                    continue;
                 }
+                $query->where($where['field'], $where['operator'], $where['value']);
             }
 
             if ($builder->whereIns) {
